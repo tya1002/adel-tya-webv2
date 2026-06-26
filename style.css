@@ -185,12 +185,15 @@ nav { display: flex; justify-content: space-between; align-items: center; paddin
 
 .img-frame {
     position: relative;
-    margin: 20px 0;
+    margin: 20px auto;
     border-radius: 12px;
     overflow: hidden;
     background: #000;
     border: 1px solid rgba(255,255,255,0.1);
+    display: inline-block;
+    max-width: 100%;
 }
+
 
 #ocr-preview-img {
     max-width: 100%;
