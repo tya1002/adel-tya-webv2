@@ -191,9 +191,12 @@ function dragElement(e) {
     function ced() { document.onmouseup = null; document.onmousemove = null; }
 }
 
-// --- OCR ---
+// --- OCR STATE MACHINE & MODAL MANAGEMENT ---
+let lastImageBase64 = "";
+
 document.getElementById('camera-input').addEventListener('change', hU);
 document.getElementById('file-input').addEventListener('change', hU);
+
 async function hU(e) {
     const f = e.target.files[0]; if(!f) return;
     
@@ -201,13 +204,12 @@ async function hU(e) {
     
     const reader = new FileReader();
     reader.onload = async (re) => {
-        // --- PROSES KOMPRESI & OPTIMASI (Akurasi Tinggi) ---
         const img = new Image();
         img.onload = async () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Tingkatkan resolusi maksimal ke 1800px agar detail tulisan tangan & koma tidak pecah/blur
+            // Tingkatkan resolusi maksimal ke 1800px agar detail tetap tajam
             const maxDim = 1800;
             let w = img.width;
             let h = img.height;
@@ -216,62 +218,160 @@ async function hU(e) {
             
             canvas.width = w; canvas.height = h;
             
-            // --- OPTIMASI KONTRAS & KETAJAMAN ---
-            // Menaikkan kontras (1.25) & kecerahan (1.03) agar tinta pulpen lebih hitam pekat dan kertas lebih putih
+            // Optimasi kontras & kecerahan
             ctx.filter = 'contrast(1.25) brightness(1.03)';
             ctx.drawImage(img, 0, 0, w, h);
             
-            // Naikkan kualitas kompresi ke 0.85 (85%) untuk mencegah kompresi piksel (artifact)
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+            // Simpan data base64 terkompresi
+            lastImageBase64 = canvas.toDataURL('image/jpeg', 0.85);
             
-            showOCRPreview(compressedBase64);
-            showToast("Menganalisis dengan Google AI...");
+            // Buka Modal & Mulai Proses
+            showOCRPreview(lastImageBase64);
+            startOCRProcess(lastImageBase64);
             
-            try {
-                const response = await fetch('/api/ocr', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: compressedBase64 })
-                });
-
-                if (response.status === 404) throw new Error("API tidak ditemukan. Pastikan sudah deploy.");
-                
-                const result = await response.json();
-                if (result.error) throw new Error(result.error);
-
-                let addedCount = 0;
-                result.forEach(item => {
-                    if(item.name && item.kilo) {
-                        const cleanKilo = String(item.kilo).replace(',', '.');
-                        const cleanModal = item.modal ? String(item.modal).replace(',', '.') : '';
-                        addRow(item.name, cleanKilo, cleanModal);
-                        addedCount++;
-                    }
-                });
-
-                showToast(addedCount > 0 ? `Berhasil! ${addedCount} data terbaca.` : "AI tidak menemukan data.");
-            } catch (err) {
-                console.error("AI Error:", err);
-                showToast("Gagal: " + err.message);
-            } finally {
-                hideOCRPreview();
-                e.target.value = ''; // Reset agar bisa pilih foto yang sama lagi
-            }
+            e.target.value = ''; // Reset input file
         };
         img.src = re.target.result;
     };
     reader.readAsDataURL(f);
 }
 
-
 function showOCRPreview(imgSrc) {
     const overlay = document.getElementById('ocr-preview-overlay');
     document.getElementById('ocr-preview-img').src = imgSrc;
     overlay.classList.remove('hidden');
+    showScanningState();
 }
 
 function hideOCRPreview() {
     document.getElementById('ocr-preview-overlay').classList.add('hidden');
+}
+
+function showScanningState() {
+    document.getElementById('ocr-modal-title').innerText = "Optimasi Gambar AI";
+    document.getElementById('ocr-modal-desc').innerText = "Sistem sedang membaca tulisan tangan dari hasil pengolahan ini:";
+    document.getElementById('ocr-scan-frame').classList.remove('hidden');
+    document.getElementById('ocr-review-frame').classList.add('hidden');
+    document.getElementById('ocr-error-frame').classList.add('hidden');
+    
+    document.getElementById('btn-ocr-cancel').classList.remove('hidden');
+    document.getElementById('btn-ocr-cancel').innerText = "Batal";
+    document.getElementById('btn-ocr-retry').classList.add('hidden');
+    document.getElementById('btn-ocr-confirm').classList.add('hidden');
+}
+
+function showReviewState(resultData) {
+    document.getElementById('ocr-modal-title').innerText = "Hasil Pembacaan AI";
+    document.getElementById('ocr-modal-desc').innerText = "Periksa & betulkan hasil pembacaan sebelum dimasukkan ke tabel:";
+    document.getElementById('ocr-scan-frame').classList.add('hidden');
+    document.getElementById('ocr-review-frame').classList.remove('hidden');
+    document.getElementById('ocr-error-frame').classList.add('hidden');
+    
+    document.getElementById('btn-ocr-cancel').classList.remove('hidden');
+    document.getElementById('btn-ocr-cancel').innerText = "Batal";
+    document.getElementById('btn-ocr-retry').classList.add('hidden');
+    
+    const confirmBtn = document.getElementById('btn-ocr-confirm');
+    confirmBtn.classList.remove('hidden');
+    
+    // Render tabel review
+    const tbody = document.getElementById('ocr-review-table-body');
+    tbody.innerHTML = '';
+    
+    resultData.forEach((item) => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        
+        const cleanKilo = item.kilo !== undefined && item.kilo !== null ? String(item.kilo).replace(',', '.') : '';
+        const cleanModal = item.modal !== undefined && item.modal !== null ? String(item.modal).replace(',', '.') : '';
+        
+        tr.innerHTML = `
+            <td style="padding: 6px 3px;"><input type="text" class="edit-review-name" value="${item.name || ''}" style="padding: 6px; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; color: white; width: 100%;"></td>
+            <td style="padding: 6px 3px;"><input type="number" step="0.1" class="edit-review-kilo" value="${cleanKilo}" style="padding: 6px; font-size: 0.85rem; text-align: center; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; color: white; width: 100%;"></td>
+            <td style="padding: 6px 3px;"><input type="number" class="edit-review-modal" value="${cleanModal}" style="padding: 6px; font-size: 0.85rem; text-align: center; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; color: white; width: 100%;"></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function showErrorState(errorMessage) {
+    document.getElementById('ocr-modal-title').innerText = "Gagal Membaca";
+    document.getElementById('ocr-modal-desc').innerText = "AI mengalami kendala saat membaca foto Anda.";
+    document.getElementById('ocr-scan-frame').classList.add('hidden');
+    document.getElementById('ocr-review-frame').classList.add('hidden');
+    
+    const errFrame = document.getElementById('ocr-error-frame');
+    errFrame.classList.remove('hidden');
+    document.getElementById('ocr-error-msg').innerText = errorMessage;
+    
+    document.getElementById('btn-ocr-cancel').classList.remove('hidden');
+    document.getElementById('btn-ocr-cancel').innerText = "Batal";
+    document.getElementById('btn-ocr-retry').classList.remove('hidden');
+    document.getElementById('btn-ocr-confirm').classList.add('hidden');
+    lucide.createIcons();
+}
+
+async function startOCRProcess(imageBase64) {
+    showScanningState();
+    showToast("Menganalisis dengan Google AI...");
+    
+    try {
+        const response = await fetch('/api/ocr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imageBase64 })
+        });
+
+        if (response.status === 404) throw new Error("API tidak ditemukan. Pastikan sudah deploy.");
+        
+        const result = await response.json();
+        if (result.error) throw new Error(result.error);
+
+        if (!Array.isArray(result) || result.length === 0) {
+            throw new Error("AI tidak berhasil mendeteksi data tabel dalam foto.");
+        }
+
+        showReviewState(result);
+        showToast("Pembacaan selesai! Silakan review.");
+    } catch (err) {
+        console.error("AI OCR Error:", err);
+        showErrorState(err.message);
+        showToast("Pembacaan gagal.");
+    }
+}
+
+async function retryOCR() {
+    if (lastImageBase64) {
+        startOCRProcess(lastImageBase64);
+    } else {
+        showToast("Tidak ada gambar untuk di-retry. Silakan upload ulang.");
+        hideOCRPreview();
+    }
+}
+
+function confirmOCRResults() {
+    const names = document.querySelectorAll('.edit-review-name');
+    const kilos = document.querySelectorAll('.edit-review-kilo');
+    const modals = document.querySelectorAll('.edit-review-modal');
+    
+    let addedCount = 0;
+    
+    // Kosongkan tabel utama dulu sebelum memasukkan hasil scan baru
+    document.getElementById('table-body').innerHTML = '';
+    
+    names.forEach((nameInput, i) => {
+        const name = nameInput.value.trim();
+        const kilo = kilos[i].value.trim();
+        const modal = modals[i].value.trim();
+        
+        if (name || kilo) {
+            addRow(name, kilo, modal);
+            addedCount++;
+        }
+    });
+    
+    hideOCRPreview();
+    showToast(`Berhasil memasukkan ${addedCount} data ke rekap tabel.`);
 }
 
 function showToast(m) {
