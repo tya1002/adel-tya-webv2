@@ -201,24 +201,28 @@ async function hU(e) {
     
     const reader = new FileReader();
     reader.onload = async (re) => {
-        // --- PROSES KOMPRESI (Agar tidak ditolak Vercel) ---
+        // --- PROSES KOMPRESI & OPTIMASI (Akurasi Tinggi) ---
         const img = new Image();
         img.onload = async () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Batasi ukuran maksimal 1200px (sudah sangat cukup untuk AI)
-            const maxDim = 1200;
+            // Tingkatkan resolusi maksimal ke 1800px agar detail tulisan tangan & koma tidak pecah/blur
+            const maxDim = 1800;
             let w = img.width;
             let h = img.height;
             if (w > h && w > maxDim) { h *= maxDim / w; w = maxDim; }
             else if (h > maxDim) { w *= maxDim / h; h = maxDim; }
             
             canvas.width = w; canvas.height = h;
+            
+            // --- OPTIMASI KONTRAS & KETAJAMAN ---
+            // Menaikkan kontras (1.25) & kecerahan (1.03) agar tinta pulpen lebih hitam pekat dan kertas lebih putih
+            ctx.filter = 'contrast(1.25) brightness(1.03)';
             ctx.drawImage(img, 0, 0, w, h);
             
-            // Kompres kualitas ke 0.7 (70%)
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+            // Naikkan kualitas kompresi ke 0.85 (85%) untuk mencegah kompresi piksel (artifact)
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
             
             showOCRPreview(compressedBase64);
             showToast("Menganalisis dengan Google AI...");
@@ -258,6 +262,7 @@ async function hU(e) {
     };
     reader.readAsDataURL(f);
 }
+
 
 function showOCRPreview(imgSrc) {
     const overlay = document.getElementById('ocr-preview-overlay');
