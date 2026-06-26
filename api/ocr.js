@@ -14,11 +14,10 @@ export default async function handler(req, res) {
 
     // Daftar model: Prioritaskan model Pro untuk akurasi tulisan tangan tingkat tinggi, lalu fallback ke Flash jika overload
     const models = [
-        'gemini-1.5-pro',
+        'gemini-2.5-pro',
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
         'gemini-pro-latest',
-        'gemini-3.1-pro',
-        'gemini-1.5-flash',
-        'gemini-3.5-flash',
         'gemini-flash-latest'
     ];
 
@@ -49,13 +48,8 @@ export default async function handler(req, res) {
                 console.warn(`Model ${model} gagal: ${errorMessage}`);
                 lastError = new Error(`Google API Error (${model}): ${errorMessage}`);
                 
-                // Jika error adalah high demand, rate limit, atau overload, coba model berikutnya
-                if (response.status === 429 || response.status === 503 || errorMessage.toLowerCase().includes('demand') || errorMessage.toLowerCase().includes('quota') || errorMessage.toLowerCase().includes('limit')) {
-                    continue;
-                } else {
-                    // Untuk error fatal lain (misal API key salah, bad request, dll), langsung hentikan
-                    return res.status(response.status || 500).json({ error: lastError.message });
-                }
+                // Jika model gagal, coba model berikutnya di dalam daftar
+                continue;
             }
 
             if (!data.candidates || !data.candidates[0]) {
