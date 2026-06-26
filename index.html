@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adel x Tya | Ultra Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- WELCOME SCREEN -->
+    <div id="welcome-screen">
+        <h1 class="welcome-title logo" style="font-size: 3.5rem;">ADEL X TYA</h1>
+        <div class="neon-text" style="margin-bottom: 15px;">SEMANGAT KERJANYA SAYANG</div>
+        <!-- Button dinaikkan lagi agar spasi lebih pas -->
+        <button class="btn-modern btn-primary-pink" style="padding: 18px 60px; font-size: 1.2rem; border-radius: 50px; margin-top: 5px;" onclick="enterApp()">MASUK</button>
+    </div>
+
+    <!-- MAIN APP CONTENT -->
+    <div id="app-content" class="hidden">
+        <nav>
+            <div class="logo" style="font-size: 1.3rem;">ADEL X TYA</div>
+            <div class="nav-links">
+                <button class="nav-btn active" id="nav-scan" onclick="showSection('scan')">
+                    <i data-lucide="layout-dashboard"></i> <span>Dashboard</span>
+                </button>
+                <button class="nav-btn" id="nav-history" onclick="showSection('history')">
+                    <i data-lucide="archive"></i> <span>Arsip</span>
+                </button>
+                <button class="nav-btn" onclick="toggleCalculator()">
+                    <i data-lucide="calculator"></i> <span>Kalkulator</span>
+                </button>
+            </div>
+        </nav>
+
+        <main>
+            <!-- DASHBOARD SECTION -->
+            <section id="scan" class="section active">
+                <div class="card">
+                    <h2 style="font-size: 1rem; margin-bottom: 24px; color: var(--text-secondary);">MASUKAN DATA</h2>
+                    <div style="display: flex; gap: 15px;">
+                        <label class="btn-modern btn-cam-blue">
+                            <i data-lucide="camera"></i> Kamera
+                            <input type="file" id="camera-input" accept="image/*" capture="environment" hidden>
+                        </label>
+                        <label class="btn-modern btn-cam-blue" style="opacity: 0.85;">
+                            <i data-lucide="image"></i> Galeri
+                            <input type="file" id="file-input" accept="image/*" hidden>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="font-size: 1rem;">REKAP TABEL</h2>
+                        <button class="btn-modern btn-add-green" onclick="addRow()">
+                            <i data-lucide="plus-circle"></i> Tambah Item
+                        </button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>IKAN</th>
+                                    <th>KILO</th>
+                                    <th>MODAL</th>
+                                    <th style="text-align: right;">JUMLAH</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body"></tbody>
+                        </table>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                        <button class="btn-modern" style="background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border); padding: 12px 20px;" onclick="clearTable()">Reset</button>
+                        <button class="btn-modern btn-primary-pink" style="padding: 12px 40px;" onclick="processData()">
+                            <i data-lucide="save"></i> PROSES & SIMPAN
+                        </button>
+                    </div>
+                </div>
+
+                <div id="result-display" class="hidden">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
+                        <div class="card" style="margin: 0; padding: 20px;">
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">Total Kilo</div>
+                            <div style="font-size: 1.4rem; font-weight: 800;" id="total-kilo">0 Kg</div>
+                        </div>
+                        <div class="card" style="margin: 0; padding: 20px; background: var(--accent); border: none;">
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">Total Harga</div>
+                            <div style="font-size: 1.4rem; font-weight: 800;" id="total-penjualan">Rp 0</div>
+                        </div>
+                    </div>
+                    <button class="btn-modern" style="width: 100%; margin-top: 15px; border: 1px dashed var(--border); background: transparent; color: var(--text-secondary); padding: 15px;" onclick="exportToText()">
+                        <i data-lucide="copy"></i> Salin Rekap Teks
+                    </button>
+                </div>
+            </section>
+
+            <!-- HISTORY SECTION -->
+            <section id="history" class="section" style="display: none;">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                        <h2 style="font-size: 1.25rem;">ARSIP REKAP</h2>
+                        <button class="btn-modern btn-delete-all" onclick="clearHistory()">
+                            <i data-lucide="trash-2"></i> HAPUS SEMUA
+                        </button>
+                    </div>
+                    <div id="history-list"></div>
+                </div>
+            </section>
+        </main>
+
+        <!-- CALCULATOR -->
+        <div id="floating-calc" class="calc-panel hidden" style="padding-bottom: 0;">
+            <!-- HEADER (History dan X Bersebelahan di Pojok Kanan Atas) -->
+            <div class="calc-header" id="floating-calc-header" style="display: flex; justify-content: flex-end; padding: 8px 12px; align-items: center; cursor: move;">
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="toggleCalcHistory()" style="background:none; border:none; color:white; cursor:pointer; padding: 4px;">
+                        <i data-lucide="history" style="width: 18px;"></i>
+                    </button>
+                    <button onclick="toggleCalculator()" style="background:none; border:none; color:white; cursor:pointer; padding: 4px;">
+                        <i data-lucide="x" style="width: 20px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- History Overlay -->
+            <div id="calc-history-overlay" class="calc-history-overlay" style="top: 48px; height: calc(100% - 48px);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <span style="font-weight: 800; font-size: 0.8rem;">History Log</span>
+                    <button onclick="toggleCalcHistory()" style="background:none; border:none; color:var(--accent);"><i data-lucide="x" style="width:16px"></i></button>
+                </div>
+                <div id="calc-logs-container"></div>
+            </div>
+
+            <div class="calc-display">
+                <div style="font-size: 0.7rem; color: var(--text-secondary); min-height: 12px; margin-bottom: 5px;" id="calc-op-view"></div>
+                <input type="text" id="calc-screen" readonly value="0">
+            </div>
+
+            <div class="calc-grid" style="margin-bottom: 0;">
+                <button class="calc-btn ac" onclick="calcClearAll()">AC</button>
+                <button class="calc-btn op" onclick="calcInput('/')">÷</button>
+                <button class="calc-btn op" onclick="calcInput('*')">&times;</button>
+                <button class="calc-btn op" onclick="calcBackspace()"><i data-lucide="delete" style="width:18px"></i></button>
+                
+                <button class="calc-btn" onclick="calcInput('7')">7</button>
+                <button class="calc-btn" onclick="calcInput('8')">8</button>
+                <button class="calc-btn" onclick="calcInput('9')">9</button>
+                <button class="calc-btn op" onclick="calcInput('-')">-</button>
+                
+                <button class="calc-btn" onclick="calcInput('4')">4</button>
+                <button class="calc-btn" onclick="calcInput('5')">5</button>
+                <button class="calc-btn" onclick="calcInput('6')">6</button>
+                <button class="calc-btn op" onclick="calcInput('+')">+</button>
+                
+                <button class="calc-btn" onclick="calcInput('1')">1</button>
+                <button class="calc-btn" onclick="calcInput('2')">2</button>
+                <button class="calc-btn" onclick="calcInput('3')">3</button>
+                <button class="calc-btn eq" onclick="calcEqual()">=</button>
+                
+                <button class="calc-btn" style="grid-column: span 3; border-bottom-left-radius: 20px;" onclick="calcInput('0')">0</button>
+                <button class="calc-btn" style="border-bottom-right-radius: 20px;" onclick="calcInput('.')">.</button>
+            </div>
+        </div>
+
+        <div id="toast" class="hidden"></div>
+    </div>
+
+    <!-- OCR PREVIEW OVERLAY -->
+    <div id="ocr-preview-overlay" class="hidden">
+        <div class="ocr-preview-container">
+            <h3 style="color: var(--accent); margin-bottom: 5px;">Optimasi Gambar AI</h3>
+            <p style="font-size: 0.75rem; color: var(--text-secondary);">Sistem sedang membaca tulisan tangan dari hasil pengolahan ini:</p>
+            <div class="img-frame">
+                <img id="ocr-preview-img" src="" alt="OCR Preview">
+                <div class="scan-line"></div>
+            </div>
+            <button class="btn-modern" onclick="hideOCRPreview()" style="background: rgba(255,255,255,0.05); margin-top: 15px;">Tutup / Batal</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
