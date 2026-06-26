@@ -14,7 +14,6 @@
     <div id="welcome-screen">
         <h1 class="welcome-title logo" style="font-size: 3.5rem;">ADEL X TYA</h1>
         <div class="neon-text" style="margin-bottom: 15px;">SEMANGAT KERJANYA SAYANG</div>
-        <!-- Button dinaikkan lagi agar spasi lebih pas -->
         <button class="btn-modern btn-primary-pink" style="padding: 18px 60px; font-size: 1.2rem; border-radius: 50px; margin-top: 5px;" onclick="enterApp()">MASUK</button>
     </div>
 
@@ -116,7 +115,6 @@
 
         <!-- CALCULATOR -->
         <div id="floating-calc" class="calc-panel hidden" style="padding-bottom: 0;">
-            <!-- HEADER (History dan X Bersebelahan di Pojok Kanan Atas) -->
             <div class="calc-header" id="floating-calc-header" style="display: flex; justify-content: flex-end; padding: 8px 12px; align-items: center; cursor: move;">
                 <div style="display: flex; gap: 8px;">
                     <button onclick="toggleCalcHistory()" style="background:none; border:none; color:white; cursor:pointer; padding: 4px;">
@@ -128,7 +126,6 @@
                 </div>
             </div>
 
-            <!-- History Overlay -->
             <div id="calc-history-overlay" class="calc-history-overlay" style="top: 48px; height: calc(100% - 48px);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <span style="font-weight: 800; font-size: 0.8rem;">History Log</span>
@@ -171,16 +168,47 @@
         <div id="toast" class="hidden"></div>
     </div>
 
-    <!-- OCR PREVIEW OVERLAY -->
+    <!-- MULTIPURPOSE OCR MODAL -->
     <div id="ocr-preview-overlay" class="hidden">
         <div class="ocr-preview-container">
-            <h3 style="color: var(--accent); margin-bottom: 5px;">Optimasi Gambar AI</h3>
-            <p style="font-size: 0.75rem; color: var(--text-secondary);">Sistem sedang membaca tulisan tangan dari hasil pengolahan ini:</p>
-            <div class="img-frame">
+            <h3 id="ocr-modal-title" style="color: var(--accent); margin-bottom: 5px;">Optimasi Gambar AI</h3>
+            <p id="ocr-modal-desc" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 15px;">Sistem sedang membaca tulisan tangan dari hasil pengolahan ini:</p>
+            
+            <!-- SCANNING STATE (FOTO + LINE) -->
+            <div id="ocr-scan-frame" class="img-frame">
                 <img id="ocr-preview-img" src="" alt="OCR Preview">
-                <div class="scan-line"></div>
+                <div id="ocr-scan-line" class="scan-line"></div>
             </div>
-            <button class="btn-modern" onclick="hideOCRPreview()" style="background: rgba(255,255,255,0.05); margin-top: 15px;">Tutup / Batal</button>
+
+            <!-- REVIEW STATE (TABLE EDIT) -->
+            <div id="ocr-review-frame" class="hidden" style="width: 100%; max-height: 45vh; overflow-y: auto; margin: 15px 0; border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: rgba(0,0,0,0.2);">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <th style="font-size: 0.7rem; padding: 8px 5px; text-align: left; width: 50%; color: var(--text-secondary);">IKAN</th>
+                            <th style="font-size: 0.7rem; padding: 8px 5px; text-align: center; width: 25%; color: var(--text-secondary);">KILO</th>
+                            <th style="font-size: 0.7rem; padding: 8px 5px; text-align: center; width: 25%; color: var(--text-secondary);">MODAL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ocr-review-table-body">
+                        <!-- Diisi secara dinamis -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ERROR STATE -->
+            <div id="ocr-error-frame" class="hidden" style="margin: 20px 0; padding: 20px; background: rgba(244, 63, 94, 0.1); border: 1px solid #f43f5e; border-radius: 16px; text-align: center; width: 100%;">
+                <div style="color: #f43f5e; font-size: 1.5rem; margin-bottom: 8px;"><i data-lucide="alert-triangle"></i></div>
+                <div style="font-weight: 700; color: #f43f5e; margin-bottom: 8px;" id="ocr-error-title">Gagal Memproses Gambar</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;" id="ocr-error-msg">Terjadi kesalahan saat menghubungi server AI. Silakan coba kembali.</div>
+            </div>
+
+            <!-- BUTTON ACTIONS -->
+            <div id="ocr-modal-actions" style="display: flex; gap: 10px; width: 100%; justify-content: center; margin-top: 15px;">
+                <button id="btn-ocr-cancel" class="btn-modern" onclick="hideOCRPreview()" style="background: rgba(255,255,255,0.05); padding: 12px 20px;">Batal</button>
+                <button id="btn-ocr-retry" class="btn-modern btn-cam-blue hidden" onclick="retryOCR()" style="padding: 12px 25px;"><i data-lucide="refresh-cw"></i> Coba Lagi</button>
+                <button id="btn-ocr-confirm" class="btn-modern btn-add-green hidden" onclick="confirmOCRResults()" style="padding: 12px 30px;"><i data-lucide="check"></i> Konfirmasi & Masukkan</button>
+            </div>
         </div>
     </div>
 
